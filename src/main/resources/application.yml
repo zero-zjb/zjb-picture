@@ -1,0 +1,44 @@
+server:
+  port: 8123
+  servlet:
+    #指定上下文路径，这样一来只要访问localhost:8123/api/，才能访问后端
+    context-path: /api
+
+spring:
+  application:
+    name: zjb-picture-backend
+  #数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.200.129:3306/zjb_picture?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+
+mybatis-plus:
+  configuration:
+    # MyBatis 配置
+    map-underscore-to-camel-case: false
+    #仅在开发环境打印日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      #全局逻辑删除实体字段
+      logic-delete-field: isDelete
+      #全局逻辑删除值
+      logic-delete-value: 1
+      #全局逻辑未删除值
+      logic-not-delete-value: 0
+
+#接口文档配置
+knife4j:
+  enable: true
+  openapi:
+    title: 接口文档
+    version: 1.0
+    group:
+      default:
+        #中文会与前端@umijs包冲突
+#        group-name: 默认分组
+        api-rule: package
+        api-rule-resources:
+          - com.zjb.zjbpicturebackend.controller
