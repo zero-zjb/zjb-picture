@@ -1,5 +1,8 @@
 package com.zjb.zjbpicturebackend.controller;
 
+import com.qcloud.cos.model.COSObject;
+import com.qcloud.cos.model.COSObjectInputStream;
+import com.qcloud.cos.utils.IOUtils;
 import com.zjb.zjbpicturebackend.annotation.AuthCheck;
 import com.zjb.zjbpicturebackend.common.BaseResponse;
 import com.zjb.zjbpicturebackend.common.ResultUtils;
@@ -7,6 +10,7 @@ import com.zjb.zjbpicturebackend.constants.UserConstant;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.manager.CosManager;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,14 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.io.IOException;
 
 @Slf4j
 @RestController
 @RequestMapping("/file")
+@RequiredArgsConstructor
 public class FileController {
-    @Resource
-    private CosManager cosManager;
+
+    private final CosManager cosManager;
     
     /**
      * 测试文件上传  
@@ -54,6 +61,35 @@ public class FileController {
                 if (!delete) {
                     log.error("file delete error, filepath = {}", filepath);
                 }
+            }
+        }
+    }
+
+    /**
+     * 测试文件下载
+     *
+     * @param filepath 文件路径
+     * @return response 响应对象
+     */
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @PostMapping("/test/download")
+    public void testDownloadFile(String filepath, HttpServletResponse  response) throws IOException {
+        COSObjectInputStream cosObjectInput = null;
+        try {
+            COSObject cosObject = cosManager.getObject(filepath);
+            cosObjectInput = cosObject.getObjectContent();
+            byte[] bytes = IOUtils.toByteArray(cosObjectInput);
+            // 设置响应头
+            response.setHeader("Content-Disposition", "attachment;filename=" + filepath);
+            response.setContentType("application/octet-stream;charset=UTF-8");
+            //写入响应
+            response.getOutputStream().write(bytes);
+            response.getOutputStream().flush();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (cosObjectInput != null) {
+                cosObjectInput.close();
             }
         }
     }
