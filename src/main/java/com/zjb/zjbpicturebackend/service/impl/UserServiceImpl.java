@@ -6,6 +6,7 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zjb.zjbpicturebackend.domain.dto.user.UserQueryRequest;
 import com.zjb.zjbpicturebackend.domain.entity.User;
+import com.zjb.zjbpicturebackend.domain.enums.UserRoleEnum;
 import com.zjb.zjbpicturebackend.domain.vo.LoginUserVO;
 import com.zjb.zjbpicturebackend.domain.vo.UserVO;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
@@ -236,4 +237,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return queryWrapper;
     }
 
+    /**
+     * 是否为管理员
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public boolean isAdmin(User user) {
+        if(user == null){
+            return false;
+        }
+        return UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
 }

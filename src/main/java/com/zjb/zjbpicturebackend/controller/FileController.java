@@ -10,6 +10,8 @@ import com.zjb.zjbpicturebackend.constants.UserConstant;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.manager.CosManager;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +29,7 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/file")
 @RequiredArgsConstructor
+@Api(tags = "图片上传和下载测试接口")
 public class FileController {
 
     private final CosManager cosManager;
@@ -39,6 +42,7 @@ public class FileController {
      */
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/test/upload")
+    @ApiOperation("测试文件上传接口")
     public BaseResponse<String> testUploadFile(@RequestPart("file") MultipartFile multipartFile) {
         // 文件目录  
         String filename = multipartFile.getOriginalFilename();
@@ -73,6 +77,7 @@ public class FileController {
      */
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/test/download")
+    @ApiOperation("测试文件下载接口")
     public void testDownloadFile(String filepath, HttpServletResponse  response) throws IOException {
         COSObjectInputStream cosObjectInput = null;
         try {
