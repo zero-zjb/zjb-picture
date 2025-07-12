@@ -11,12 +11,22 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
+    # Redis 配置
+  redis:
+    database: 0
+    host: 192.168.222.128
+    port: 6379
+    timeout: 5000
+    password: 123456
+
   #数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://192.168.222.128:3306/zjb_picture?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 123456
+  profiles:
+    active: local
 
 mybatis-plus:
   configuration:

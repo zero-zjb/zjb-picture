@@ -31,6 +31,35 @@ public class Picture implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
+    /**
+     * 状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @ApiModelProperty(value = "状态：0-待审核; 1-通过; 2-拒绝")
+    @TableField("reviewStatus")
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @ApiModelProperty(value = "审核信息")
+    @TableField("reviewMessage")
+    private String reviewMessage;
+
+    /**
+     * 审核人 id
+     */
+    @ApiModelProperty(value = "审核人 id")
+    @TableField("reviewerId")
+    private Long reviewerId;
+
+    /**
+     * 审核时间
+     */
+    @ApiModelProperty(value = "审核时间")
+    @TableField("reviewTime")
+    private LocalDateTime reviewTime;
+
+
     @ApiModelProperty(value = "图片 url")
     @TableField("url")
     private String url;

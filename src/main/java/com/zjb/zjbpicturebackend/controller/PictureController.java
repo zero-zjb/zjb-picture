@@ -4,17 +4,17 @@ package com.zjb.zjbpicturebackend.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zjb.zjbpicturebackend.annotation.AuthCheck;
 import com.zjb.zjbpicturebackend.common.BaseResponse;
 import com.zjb.zjbpicturebackend.common.DeleteRequest;
 import com.zjb.zjbpicturebackend.common.ResultUtils;
 import com.zjb.zjbpicturebackend.constants.UserConstant;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureEditRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureQueryRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUpdateRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUploadRequest;
+import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
 import com.zjb.zjbpicturebackend.domain.entity.User;
+import com.zjb.zjbpicturebackend.domain.enums.PictureReviewStatusEnum;
 import com.zjb.zjbpicturebackend.domain.vo.PictureTagCategory;
 import com.zjb.zjbpicturebackend.domain.vo.PictureVO;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
@@ -26,6 +26,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -50,12 +52,62 @@ import java.util.List;
 public class PictureController {
     private final IPictureService pictureService;
     private final IUserService userService;
+
+    private final Cache<String, String> LOCAL_CACHE =
+            Caffeine.newBuilder().initialCapacity(1024)
+                    .maximumSize(10000L)
+                    // 缓存 5 分钟移除
+                    .expireAfterWrite(5L, TimeUnit.MINUTES)
+                    .build();
+
+
+    /**
+     * 多级缓存获取图片列表（缓存）
+     *
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/list/page/vo/cache")
+    @ApiOperation("获取图片列表（多级缓存）")
+    public BaseResponse<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryRequest pictureQueryRequest, HttpServletRequest request) {
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 普通用户默认只能查看已过审的数据
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+        // 构建缓存 key
+        String queryCondition = JSONUtil.toJsonStr(pictureQueryRequest);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        String cacheKey = "listPictureVOByPage:" + hashKey;
+        // 从本地缓存中查询
+        String cachedValue = LOCAL_CACHE.getIfPresent(cacheKey);
+        if (cachedValue != null) {
+            // 如果缓存命中，返回结果
+            Page<PictureVO> cachedPage = JSONUtil.toBean(cachedValue, Page.class);
+            return ResultUtils.success(cachedPage);
+        }
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryRequest));
+        // 获取封装类
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+        // 存入 Cache 缓存
+        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
+        LOCAL_CACHE.put(cacheKey, cacheValue);
+        // 返回结果
+        return ResultUtils.success(pictureVOPage);
+    }
+
+
+
     /**
      * 上传图片（可重新上传）
      */
     @PostMapping("/upload")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    @ApiOperation("上传图片")
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @ApiOperation("本地上传图片")
     public BaseResponse<PictureVO> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadRequest pictureUploadRequest,
@@ -64,6 +116,35 @@ public class PictureController {
         PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
         return ResultUtils.success(pictureVO);
     }
+
+    @PostMapping("/upload/batch")
+    @ApiOperation("批量抓取上传图片")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Integer> uploadPictureByBatch(
+            @RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
+            HttpServletRequest request
+    ) {
+        ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
+        return ResultUtils.success(uploadCount);
+    }
+
+
+    /**
+     * 通过 URL 上传图片（可重新上传）
+     */
+    @PostMapping("/upload/url")
+    @ApiOperation("通过url上传图片")
+    public BaseResponse<PictureVO> uploadPictureByUrl(
+            @RequestBody PictureUploadRequest pictureUploadRequest,
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String fileUrl = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
 
     /**
      * 删除图片
@@ -106,7 +187,7 @@ public class PictureController {
     @PostMapping("/update")
     @ApiOperation("更新图片")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest) {
+    public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureUpdateRequest == null || pictureUpdateRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
         //将实体类转换成数据库实体类
         Picture picture = BeanUtil.copyProperties(pictureUpdateRequest, Picture.class);
@@ -117,6 +198,9 @@ public class PictureController {
         //判断图片是否存在
         Picture oldPicture = pictureService.getById(picture.getId());
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 补充审核参数
+        User loginUser = userService.getLoginUser(request);
+        pictureService.fillReviewParams(picture, loginUser);
         //操作数据库
         boolean result = pictureService.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -162,6 +246,8 @@ public class PictureController {
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 普通用户默认只能查看已过审的数据
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
                 pictureService.getQueryWrapper(pictureQueryRequest));
@@ -196,6 +282,8 @@ public class PictureController {
         if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 补充审核参数
+        pictureService.fillReviewParams(picture, loginUser);
         // 操作数据库
         boolean result = pictureService.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -216,4 +304,17 @@ public class PictureController {
         return ResultUtils.success(pictureTagCategory);
     }
 
+    /**
+     * 图片审核（管理员）
+     */
+    @PostMapping("/review")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @ApiOperation("图片审核（管理员）")
+    public BaseResponse<Boolean> doPictureReview(@RequestBody PictureReviewRequest pictureReviewRequest,
+                                                 HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.doPictureReview(pictureReviewRequest, loginUser);
+        return ResultUtils.success(true);
+    }
 }

@@ -1,5 +1,6 @@
 package com.zjb.zjbpicturebackend.domain.dto.picture;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.zjb.zjbpicturebackend.common.PageRequest;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -22,7 +24,31 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
      * id  
      */
     @ApiModelProperty(value = "图片id")
-    private Long id;  
+    private Long id;
+
+    /**
+     * 状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @ApiModelProperty(value = "状态：0-待审核; 1-通过; 2-拒绝")
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @ApiModelProperty(value = "审核信息")
+    private String reviewMessage;
+
+    /**
+     * 审核人 id
+     */
+    @ApiModelProperty(value = "审核人 id")
+    private Long reviewerId;
+
+    /**
+     * 审核时间
+     */
+    @ApiModelProperty(value = "审核时间")
+    private LocalDateTime reviewTime;
   
     /**  
      * 图片名称  

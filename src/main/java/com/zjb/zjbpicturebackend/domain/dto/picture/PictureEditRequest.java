@@ -14,8 +14,9 @@ import java.util.List;
 @Data
 @ApiModel(value="图片编辑请求对象", description="图片编辑请求")
 public class PictureEditRequest implements Serializable {
-  
-    /**  
+
+    private static final long serialVersionUID = -3452014893046275143L;
+    /**
      * id  
      */
     @ApiModelProperty(value = "图片id")
@@ -44,6 +45,5 @@ public class PictureEditRequest implements Serializable {
      */
     @ApiModelProperty(value = "图片标签")
     private List<String> tags;
-  
-    private static final long serialVersionUID = 1L;  
+
 }
