@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -49,15 +50,26 @@ public class CosManager {
         PicOperations picOperations = new PicOperations();
         // 0 不返回原图信息，1返回原图信息，默认为0
         picOperations.setIsPicInfo(1);
+        // 图片处理规则列表
+        List<PicOperations.Rule> ruleList = new ArrayList<>();
         //图片压缩（转成webp格式）
-        List<PicOperations.Rule> ruleList = picOperations.getRules();
         PicOperations.Rule rule = new PicOperations.Rule();
         rule.setBucket(cosClientConfig.getBucket());
         rule.setRule("imageMogr2/format/webp");
         String webpKey = FileUtil.mainName(key) + ".webp";
         rule.setFileId(webpKey);
         ruleList.add(rule);
+        //缩略图处理
+        //图片要大于2kb才进行缩略图处理
 
+        if(file.length() > 2 * 1024){
+            PicOperations.Rule thumbnailRule = new PicOperations.Rule();
+            thumbnailRule.setBucket(cosClientConfig.getBucket());
+            thumbnailRule.setRule("imageMogr2/thumbnail/256x256");
+            String thumbnailKey = FileUtil.mainName(key) + "_thumbnail.webp";
+            thumbnailRule.setFileId(thumbnailKey);
+            ruleList.add(thumbnailRule);
+        }
         // 构造处理参数
         picOperations.setRules(ruleList);
         putObjectRequest.setPicOperations(picOperations);

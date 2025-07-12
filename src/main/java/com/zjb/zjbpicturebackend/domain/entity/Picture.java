@@ -64,6 +64,14 @@ public class Picture implements Serializable {
     @TableField("url")
     private String url;
 
+    /**
+     * 缩略图 url
+     */
+    @ApiModelProperty(value = "缩略图 url")
+    @TableField("thumbnailUrl")
+    private String thumbnailUrl;
+
+
     @ApiModelProperty(value = "图片名称")
     @TableField("name")
     private String name;
