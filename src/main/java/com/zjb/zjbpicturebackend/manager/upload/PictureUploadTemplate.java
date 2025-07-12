@@ -1,5 +1,6 @@
 package com.zjb.zjbpicturebackend.manager.upload;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
@@ -10,7 +11,9 @@ import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import com.zjb.zjbpicturebackend.config.CosClientConfig;
 import com.zjb.zjbpicturebackend.domain.dto.file.UploadPictureResult;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
@@ -85,6 +88,12 @@ public abstract class PictureUploadTemplate {
             //上传图片
             PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            if(CollUtil.isNotEmpty(objectList)){
+                CIObject ciObject = objectList.get(0);
+                return getUploadPictureResult(originalFilename, ciObject);
+            }
             //返回分装结果
             return getUploadPictureResult(imageInfo, originalFilename, file, uploadPath);
         } catch (Exception e) {
@@ -118,6 +127,29 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + uploadPath);
         return uploadPictureResult;
     }
+
+    /**
+     * 返回图片压缩后的分装结果
+     *
+     * @param originFilename 文件名字
+     * @return UploadPictureResult
+     */
+    private UploadPictureResult getUploadPictureResult(String originFilename, CIObject compressedCiObject) {
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
+        int picWidth = compressedCiObject.getWidth();
+        int picHeight = compressedCiObject.getHeight();
+        double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
+        uploadPictureResult.setPicName(FileUtil.mainName(originFilename));
+        uploadPictureResult.setPicWidth(picWidth);
+        uploadPictureResult.setPicHeight(picHeight);
+        uploadPictureResult.setPicScale(picScale);
+        uploadPictureResult.setPicFormat(compressedCiObject.getFormat());
+        uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
+        // 设置图片为压缩后的地址
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
+        return uploadPictureResult;
+    }
+
 
 
     /**
