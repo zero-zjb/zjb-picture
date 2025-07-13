@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @ApiModel(value = "图片批量抓取上传对象", description = "图片批量上传")
@@ -28,4 +29,15 @@ public class PictureUploadByBatchRequest implements Serializable {
     @ApiModelProperty(value = "名称前缀")
     private String namePrefix;
 
+    /**
+     * 分类
+     */
+    @ApiModelProperty(value = "图片分类")
+    private String category;
+
+    /**
+     * 标签
+     */
+    @ApiModelProperty(value = "图片标签")
+    private List<String> tags;
 }

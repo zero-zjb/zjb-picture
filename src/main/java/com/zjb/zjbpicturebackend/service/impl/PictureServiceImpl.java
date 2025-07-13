@@ -4,13 +4,11 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zjb.zjbpicturebackend.domain.dto.file.UploadPictureResult;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureQueryRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureReviewRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUploadByBatchRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUploadRequest;
+import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
 import com.zjb.zjbpicturebackend.domain.entity.User;
 import com.zjb.zjbpicturebackend.domain.enums.PictureReviewStatusEnum;
@@ -19,6 +17,7 @@ import com.zjb.zjbpicturebackend.domain.vo.UserVO;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.exception.ThrowUtils;
+import com.zjb.zjbpicturebackend.manager.CosManager;
 import com.zjb.zjbpicturebackend.manager.upload.FilePictureUpload;
 import com.zjb.zjbpicturebackend.manager.upload.PictureUploadTemplate;
 import com.zjb.zjbpicturebackend.manager.upload.UrlPictureUpload;
@@ -32,7 +31,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -60,6 +62,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private final UrlPictureUpload urlPictureUpload;
 
     private final IUserService userService;
+
+    private final CosManager cosManager;
     /**
      * 上传图片
      *
@@ -84,6 +88,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
+            this.clearPictureFile(oldPicture);
         }
 
         //上传图片，得到信息
@@ -177,6 +182,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             try{
                 PictureVO pictureVO = this.uploadPicture(imgUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功: id = {}", pictureVO.getId());
+                PictureEditRequest pictureEditRequest = BeanUtil.copyProperties(pictureUploadByBatchRequest, PictureEditRequest.class);
+                pictureEditRequest.setId(pictureVO.getId());
+                this.editPicture(pictureEditRequest, loginUser);
                 uploadCount++;
             }catch (Exception e){
                 log.error("图片上传失败: {}", e);
@@ -367,6 +375,63 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         } else {
             // 非管理员，创建或编辑都要改为待审核
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
+        }
+    }
+
+    /**
+     * @param pictureEditRequest
+     * @param loginUser
+     * 编辑图片（给用户使用）
+     */
+    @Override
+    public Boolean editPicture(PictureEditRequest pictureEditRequest, User loginUser) {
+        if (pictureEditRequest == null || pictureEditRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 在此处将实体类和 DTO 进行转换
+        Picture picture = new Picture();
+        BeanUtils.copyProperties(pictureEditRequest, picture);
+        // 注意将 list 转为 string
+        picture.setTags(JSONUtil.toJsonStr(pictureEditRequest.getTags()));
+        // 设置编辑时间
+        picture.setEditTime(LocalDateTime.now());
+        // 数据校验
+        this.validPicture(picture);
+
+        // 判断是否存在
+        long id = pictureEditRequest.getId();
+        Picture oldPicture = this.getById(id);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 仅本人或管理员可编辑
+        if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        // 补充审核参数
+        this.fillReviewParams(picture, loginUser);
+        // 操作数据库
+        boolean result = this.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return result;
+    }
+
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // 注意，这里的 url 包含了域名，实际上只要传 key 值（存储路径）就够了
+        cosManager.deleteObject(oldPicture.getUrl());
+        // 清理缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
         }
     }
 

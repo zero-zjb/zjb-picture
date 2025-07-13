@@ -2,14 +2,12 @@ package com.zjb.zjbpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureQueryRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureReviewRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUploadByBatchRequest;
-import com.zjb.zjbpicturebackend.domain.dto.picture.PictureUploadRequest;
+import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zjb.zjbpicturebackend.domain.entity.User;
 import com.zjb.zjbpicturebackend.domain.vo.PictureVO;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -96,4 +94,21 @@ public interface IPictureService extends IService<Picture> {
      * @param loginUser
      */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest
+     * @param loginUser
+     * @return
+     */
+    Boolean editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
+     * 异步删除图片文件
+     *
+     * @param oldPicture
+     */
+    @Async
+    void clearPictureFile(Picture oldPicture);
 }

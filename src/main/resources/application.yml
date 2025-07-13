@@ -3,10 +3,18 @@ server:
   servlet:
     #指定上下文路径，这样一来只要访问localhost:8123/api/，才能访问后端
     context-path: /api
+    # cookie一天后过期
+    cookie:
+      max-age: 86400
 
 spring:
   application:
     name: zjb-picture-backend
+  # session配置
+  session:
+      store-type: redis
+      # session过期时间
+      timeout: 86400
   #开放更大的文件上传限制
   servlet:
     multipart:
