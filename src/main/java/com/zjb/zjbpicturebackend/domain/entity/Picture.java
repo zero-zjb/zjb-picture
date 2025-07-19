@@ -112,6 +112,13 @@ public class Picture implements Serializable {
     @TableField("userId")
     private Long userId;
 
+    /**
+     * 空间 id
+     */
+    @ApiModelProperty(value = "空间 id")
+    @TableField("spaceId")
+    private Long spaceId;
+
     @ApiModelProperty(value = "创建时间")
     @TableField("createTime")
     private LocalDateTime createTime;

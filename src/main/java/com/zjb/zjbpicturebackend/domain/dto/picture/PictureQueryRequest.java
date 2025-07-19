@@ -115,4 +115,17 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
      */
     @ApiModelProperty(value = "用户id")
     private Long userId;
+
+    /**
+     * 空间 id
+     */
+    @ApiModelProperty(value = "空间id")
+    private Long spaceId;
+
+    /**
+     * 是否只查询 spaceId 为 null 的数据
+     */
+    @ApiModelProperty(value = "是否只查询 spaceId 为 null 的数据")
+    private boolean nullSpaceId;
+
 }

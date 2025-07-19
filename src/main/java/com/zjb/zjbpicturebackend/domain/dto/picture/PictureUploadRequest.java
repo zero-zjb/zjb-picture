@@ -23,6 +23,11 @@ public class PictureUploadRequest implements Serializable {
     private String fileUrl;
 
     /**
+     * 空间 id
+     */
+    private Long spaceId;
+
+    /**
      * 图片名称
      */
     @ApiModelProperty(value = "图片名称")

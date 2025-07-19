@@ -2,6 +2,7 @@ package com.zjb.zjbpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zjb.zjbpicturebackend.common.DeleteRequest;
 import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -104,6 +105,35 @@ public interface IPictureService extends IService<Picture> {
      */
     Boolean editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 
+
+    /**
+     * 删除图片
+     *
+     * @param deleteRequest
+     * @param request
+     * @return
+     */
+    boolean deletePicture(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 获取图片列表（多级缓存）
+     *
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
+    Page<PictureVO> listPictureVOByPageWithCache(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+    /**
+     * 获取图片列表（封装类）
+     *
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
+    Page<PictureVO> listPictureVOByPage(PictureQueryRequest pictureQueryRequest,
+                                        HttpServletRequest request);
+
     /**
      * 异步删除图片文件
      *
@@ -111,4 +141,12 @@ public interface IPictureService extends IService<Picture> {
      */
     @Async
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 检查图片权限
+     *
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture  picture);
 }
