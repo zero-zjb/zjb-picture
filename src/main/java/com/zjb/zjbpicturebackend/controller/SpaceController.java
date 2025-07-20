@@ -2,18 +2,22 @@ package com.zjb.zjbpicturebackend.controller;
 
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.BooleanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zjb.zjbpicturebackend.annotation.AuthCheck;
 import com.zjb.zjbpicturebackend.common.BaseResponse;
 import com.zjb.zjbpicturebackend.common.DeleteRequest;
 import com.zjb.zjbpicturebackend.common.ResultUtils;
 import com.zjb.zjbpicturebackend.constants.UserConstant;
+import com.zjb.zjbpicturebackend.domain.dto.picture.PictureQueryRequest;
 import com.zjb.zjbpicturebackend.domain.dto.space.SpaceAddRequest;
 import com.zjb.zjbpicturebackend.domain.dto.space.SpaceEditRequest;
+import com.zjb.zjbpicturebackend.domain.dto.space.SpaceQueryRequest;
 import com.zjb.zjbpicturebackend.domain.dto.space.SpaceUpdateRequest;
 import com.zjb.zjbpicturebackend.domain.entity.Space;
 import com.zjb.zjbpicturebackend.domain.entity.User;
 import com.zjb.zjbpicturebackend.domain.enums.SpaceLevelEnum;
+import com.zjb.zjbpicturebackend.domain.vo.PictureVO;
+import com.zjb.zjbpicturebackend.domain.vo.SpaceVO;
 import com.zjb.zjbpicturebackend.domain.vo.SpaceLevel;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
@@ -149,4 +153,43 @@ public class SpaceController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 分页获取空间列表（仅管理员可用）
+     */
+    @PostMapping("/list/page")
+    @ApiOperation("分页获取空间列表")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<Space>> listSpaceByPage(@RequestBody SpaceQueryRequest spaceQueryRequest) {
+        long current = spaceQueryRequest.getCurrent();
+        long size = spaceQueryRequest.getPageSize();
+        // 查询数据库
+        Page<Space> spacePage = spaceService.page(new Page<>(current, size),
+                spaceService.getQueryWrapper(spaceQueryRequest));
+        return ResultUtils.success(spacePage);
+    }
+
+    /**
+     * 分页获取空间列表（封装类）
+     */
+    @PostMapping("/list/page/vo")
+    @ApiOperation("分页获取空间列表（封装类）")
+    public BaseResponse<Page<SpaceVO>> listSpaceVOByPage(@RequestBody
+                                                             SpaceQueryRequest spaceQueryRequest,
+                                                             HttpServletRequest request) {
+        Page<SpaceVO> spaceVOPage = spaceService.listSpaceVOByPage(spaceQueryRequest, request);
+        // 获取封装类
+        return ResultUtils.success(spaceVOPage);
+    }
+
+    /**
+     * 根据 id 获取空间（封装类）
+     */
+    @GetMapping("/get/vo")
+    @ApiOperation("根据 id 获取空间（封装类）")
+    public BaseResponse<SpaceVO> getSpaceVOById(long id, HttpServletRequest request) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        Space space = spaceService.getById(id);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
+        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+    }
 }

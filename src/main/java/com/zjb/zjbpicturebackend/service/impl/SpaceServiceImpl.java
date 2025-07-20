@@ -157,7 +157,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
      * 分页获取空间封装
      */
     @Override
-    public Page<SpaceVO> getPictureVOPage(Page<Space> spacePage, HttpServletRequest request) {
+    public Page<SpaceVO> getSpaceVOPage(Page<Space> spacePage, HttpServletRequest request) {
         List<Space> spaceList = spacePage.getRecords();
         Page<SpaceVO> spaceVOPage = new Page<>(spacePage.getCurrent(), spacePage.getSize(), spacePage.getTotal());
         if (CollUtil.isEmpty(spaceList)) {
@@ -215,5 +215,32 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
                 lockMap.remove(loginUser.getId());
             }
         }
+    }
+
+    /**
+     * 分页获取列表（封装类）
+     *
+     * @param spaceQueryRequest
+     * @param request
+     * @return
+     */
+    @Override
+    public Page<SpaceVO> listSpaceVOByPage(SpaceQueryRequest spaceQueryRequest,
+                                               HttpServletRequest request) {
+        long current = spaceQueryRequest.getCurrent();
+        long size = spaceQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        Long userId = spaceQueryRequest.getUserId();
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户未登录或不存在");
+        User loginUser = userService.getLoginUser(request);
+        if(!loginUser.getId().equals(userId) && !userService.isAdmin(loginUser)){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
+        }
+        // 查询数据库
+        Page<Space> spacePage = this.page(new Page<>(current, size),
+                this.getQueryWrapper(spaceQueryRequest));
+        // 获取封装类
+        return this.getSpaceVOPage(spacePage, request);
     }
 }
