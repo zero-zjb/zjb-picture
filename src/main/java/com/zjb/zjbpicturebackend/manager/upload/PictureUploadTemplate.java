@@ -20,6 +20,7 @@ import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.exception.ThrowUtils;
 import com.zjb.zjbpicturebackend.manager.CosManager;
+import com.zjb.zjbpicturebackend.utils.ColorTransformUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -82,21 +83,26 @@ public abstract class PictureUploadTemplate {
         try {
             //创建临时文件
             file = File.createTempFile(uploadPath, null);
-            //处理文件
+            //处理文件来源
             processFile(inputSource, file);
             //multipartFile.transferTo(file);
-            //上传图片
+            //上传图片对象存储中
             PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
+            //获取图片信息对象，返回分装结果
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            //获取图像处理结果
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
             List<CIObject> objectList = processResults.getObjectList();
             if(CollUtil.isNotEmpty(objectList)){
+                //获取压缩后的图片信息
                 CIObject ciObject = objectList.get(0);
+                //获取缩略图信息
                 CIObject thumbnailCiObject = objectList.get(1);
                 if(CollUtil.isEmpty(objectList)){
+                    //缩略图不存在，就获取压缩后的图片信息
                     thumbnailCiObject = ciObject;
                 }
-                return getUploadPictureResult(originalFilename, ciObject, thumbnailCiObject);
+                return getUploadPictureResult(imageInfo, originalFilename, ciObject, thumbnailCiObject);
             }
             //返回分装结果
             return getUploadPictureResult(imageInfo, originalFilename, file, uploadPath);
@@ -129,6 +135,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicFormat(imageInfo.getFormat());
         uploadPictureResult.setPicSize(FileUtil.size(file));
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + uploadPath);
+        uploadPictureResult.setPicColor(ColorTransformUtils.transformColor(imageInfo.getAve()));
         return uploadPictureResult;
     }
 
@@ -138,9 +145,11 @@ public abstract class PictureUploadTemplate {
      * @param originFilename 文件名字
      * @return UploadPictureResult
      */
-    private UploadPictureResult getUploadPictureResult(String originFilename, CIObject compressedCiObject, CIObject thumbnailCiObject) {
+    private UploadPictureResult getUploadPictureResult(ImageInfo imageInfo, String originFilename, CIObject compressedCiObject, CIObject thumbnailCiObject) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
+        // 图片宽度
         int picWidth = compressedCiObject.getWidth();
+        // 图片高度
         int picHeight = compressedCiObject.getHeight();
         double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
         uploadPictureResult.setPicName(FileUtil.mainName(originFilename));
@@ -153,6 +162,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
         // 设置缩略图的地址
         uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
+        uploadPictureResult.setPicColor(ColorTransformUtils.transformColor(imageInfo.getAve()));
         return uploadPictureResult;
     }
 

@@ -128,4 +128,18 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
     @ApiModelProperty(value = "是否只查询 spaceId 为 null 的数据")
     private boolean nullSpaceId;
 
+    /**
+     * 开始编辑时间
+     */
+    @ApiModelProperty(value = "开始编辑时间")
+    private LocalDateTime startEditTime;
+
+    /**
+     * 结束编辑时间
+     */
+    @ApiModelProperty(value = "结束编辑时间")
+    private LocalDateTime endEditTime;
+
+
+
 }

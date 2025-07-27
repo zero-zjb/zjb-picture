@@ -112,9 +112,11 @@ public class Picture implements Serializable {
     @TableField("userId")
     private Long userId;
 
-    /**
-     * 空间 id
-     */
+    @ApiModelProperty(value = "图片主色调")
+    @TableField("picColor")
+    private String picColor;
+
+
     @ApiModelProperty(value = "空间 id")
     @TableField("spaceId")
     private Long spaceId;

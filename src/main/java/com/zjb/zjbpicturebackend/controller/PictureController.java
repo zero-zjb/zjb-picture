@@ -3,11 +3,14 @@ package com.zjb.zjbpicturebackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.BooleanUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zjb.zjbpicturebackend.annotation.AuthCheck;
+import com.zjb.zjbpicturebackend.api.imagesearch.baidu.ImageSearchApiFacade;
+import com.zjb.zjbpicturebackend.api.imagesearch.baidu.domain.ImageSearchResult;
+import com.zjb.zjbpicturebackend.api.imagesearch.so.SoImageSearchApiFacade;
+import com.zjb.zjbpicturebackend.api.imagesearch.so.domain.SoImageSearchResult;
 import com.zjb.zjbpicturebackend.common.BaseResponse;
 import com.zjb.zjbpicturebackend.common.DeleteRequest;
 import com.zjb.zjbpicturebackend.common.ResultUtils;
@@ -16,10 +19,8 @@ import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
 import com.zjb.zjbpicturebackend.domain.entity.Space;
 import com.zjb.zjbpicturebackend.domain.entity.User;
-import com.zjb.zjbpicturebackend.domain.enums.PictureReviewStatusEnum;
 import com.zjb.zjbpicturebackend.domain.vo.PictureTagCategory;
 import com.zjb.zjbpicturebackend.domain.vo.PictureVO;
-import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.exception.ThrowUtils;
 import com.zjb.zjbpicturebackend.service.IPictureService;
@@ -28,17 +29,14 @@ import com.zjb.zjbpicturebackend.service.IUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -255,6 +253,74 @@ public class PictureController {
         ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 以图搜图
+     */
+//    @PostMapping("/search/picture")
+//    @ApiOperation("以图搜图")
+//    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+//        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+//        Long pictureId = searchPictureByPictureRequest.getPictureId();
+//        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+//        Picture oldPicture = pictureService.getById(pictureId);
+//        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+//        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getThumbnailUrl());
+//        return ResultUtils.success(resultList);
+//    }
+
+    /**
+     * 以图搜图
+     */
+    @PostMapping("/search/picture")
+    @ApiOperation("以图搜图")
+    public BaseResponse<List<SoImageSearchResult>> searchPictureByPictureIsSo(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        Picture oldPicture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        List<SoImageSearchResult> resultList = new ArrayList<>();
+        // 这个 start 是控制查询多少页, 每页是 20 条
+        int start = 0;
+        while (resultList.size() <= 50) {
+            List<SoImageSearchResult> tempList = SoImageSearchApiFacade.searchImage(
+                    StrUtil.isNotBlank(oldPicture.getThumbnailUrl()) ? oldPicture.getThumbnailUrl() : oldPicture.getUrl(), start
+            );
+            if (tempList.isEmpty()) {
+                break;
+            }
+            resultList.addAll(tempList);
+            start += tempList.size();
+        }
+        return ResultUtils.success(resultList);
+    }
+
+    /**
+     * 以颜色搜索图片
+     */
+    @PostMapping("/search/color")
+    @ApiOperation("以颜色搜索图片")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR);
+        String picColor = searchPictureByColorRequest.getPicColor();
+        Long spaceId = searchPictureByColorRequest.getSpaceId();
+        User loginUser = userService.getLoginUser(request);
+        List<PictureVO> result = pictureService.searchPictureByColor(spaceId, picColor, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 批量编辑图片
+     */
+    @PostMapping("/edit/batch")
+    @ApiOperation("批量编辑图片")
+    public BaseResponse<Boolean> editPictureByBatch(@RequestBody PictureEditByBatchRequest pictureEditByBatchRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureEditByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
         return ResultUtils.success(true);
     }
 }

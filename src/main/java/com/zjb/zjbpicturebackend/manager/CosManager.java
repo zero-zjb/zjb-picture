@@ -67,7 +67,7 @@ public class CosManager {
             PicOperations.Rule thumbnailRule = new PicOperations.Rule();
             thumbnailRule.setBucket(cosClientConfig.getBucket());
             thumbnailRule.setRule("imageMogr2/thumbnail/256x256");
-            String thumbnailKey = FileUtil.mainName(key) + "_thumbnail.webp";
+            String thumbnailKey = FileUtil.mainName(key) + "_thumbnail.png";
             thumbnailRule.setFileId(thumbnailKey);
             ruleList.add(thumbnailRule);
         }
