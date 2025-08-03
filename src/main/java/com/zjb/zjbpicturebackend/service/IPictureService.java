@@ -2,6 +2,7 @@ package com.zjb.zjbpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zjb.zjbpicturebackend.api.aliyunai.domain.CreateOutPaintingTaskResponse;
 import com.zjb.zjbpicturebackend.common.DeleteRequest;
 import com.zjb.zjbpicturebackend.domain.dto.picture.*;
 import com.zjb.zjbpicturebackend.domain.entity.Picture;
@@ -171,4 +172,13 @@ public interface IPictureService extends IService<Picture> {
      */
     @Transactional(rollbackFor = Exception.class)
     void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    /**
+     * 创建图片扩图任务
+     *
+     * @param createPictureOutPaintingTaskRequest
+     * @param loginUser
+     * @return
+     */
+    CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 }

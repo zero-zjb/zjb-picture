@@ -64,3 +64,7 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.zjb.zjbpicturebackend.controller
+
+#阿里云AI api配置
+aliYun:
+  apiKey: ${aliYun.apiKey}
