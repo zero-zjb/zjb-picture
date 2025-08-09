@@ -243,4 +243,17 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         // 获取封装类
         return this.getSpaceVOPage(spacePage, request);
     }
+
+    /**
+     * 校验空间权限
+     *
+     * @param space
+     * @param loginUser
+     */
+    @Override
+    public void checkSpaceAuth(User loginUser, Space space) {
+        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
+        }
+    }
 }

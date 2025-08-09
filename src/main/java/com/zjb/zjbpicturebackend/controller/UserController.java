@@ -190,8 +190,6 @@ public class UserController {
         Page<User> userPage = userService.page(new Page<>(current, pageSize), userService.getQueryWrapper(userQueryRequest));
         Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
         List<UserVO> userVO = userService.getUserVOList(userPage.getRecords());
-//        System.out.println(userPage.getRecords());
-//        System.out.println(userVO);
         userVOPage.setRecords(userVO);
         return ResultUtils.success(userVOPage);
     }
