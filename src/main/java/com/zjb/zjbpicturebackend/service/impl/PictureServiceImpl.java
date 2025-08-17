@@ -25,6 +25,8 @@ import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.exception.ThrowUtils;
 import com.zjb.zjbpicturebackend.manager.CosManager;
+import com.zjb.zjbpicturebackend.manager.auth.StpKit;
+import com.zjb.zjbpicturebackend.manager.auth.domain.SpaceUserPermissionConstant;
 import com.zjb.zjbpicturebackend.manager.upload.FilePictureUpload;
 import com.zjb.zjbpicturebackend.manager.upload.PictureUploadTemplate;
 import com.zjb.zjbpicturebackend.manager.upload.UrlPictureUpload;
@@ -112,7 +114,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
             //只有空间创建者可以上传图片
-            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
+            //ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
             // 空间容量是否够
             ThrowUtils.throwIf(space.getTotalCount() >= space.getMaxCount(), ErrorCode.OPERATION_ERROR, "空间条数不够");
             ThrowUtils.throwIf(space.getTotalSize() >= space.getMaxSize(), ErrorCode.OPERATION_ERROR, "空间大小不够");
@@ -136,9 +138,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 ThrowUtils.throwIf(!oldPicture.getSpaceId().equals(spaceId), ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
             }
             // 仅本人或管理员可编辑
-            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-            }
+//            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+//                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+//            }
             this.clearPictureFile(oldPicture);
         }
 
@@ -673,12 +675,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             pictureQueryRequest.setNullSpaceId(true);
         }else{
             //私有空间
-            Space space = spaceService.getById(spaceId);
-            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-            User loginUser = userService.getLoginUser(request);
-            if(!space.getUserId().equals(loginUser.getId())){
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
-            }
+//            Space space = spaceService.getById(spaceId);
+//            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+//            User loginUser = userService.getLoginUser(request);
+//            if(!space.getUserId().equals(loginUser.getId())){
+//                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限操作该空间");
+//            }
+            boolean hasPermission = StpKit.SPACE.hasPermission(SpaceUserPermissionConstant.PICTURE_VIEW);
+            ThrowUtils.throwIf(!hasPermission, ErrorCode.NO_AUTH_ERROR);
         }
 
         // 查询数据库

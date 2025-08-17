@@ -71,6 +71,13 @@ public class Space implements Serializable {
     @TableField("updateTime")
     private LocalDateTime updateTime;
 
+    /**
+     * 空间类型：0-私有 1-团队
+     */
+    @ApiModelProperty(value = "空间类型：0-私有 1-团队")
+    @TableField("spaceType")
+    private Integer spaceType;
+
     @ApiModelProperty(value = "是否删除")
     @TableField("isDelete")
     @TableLogic

@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 /**
  * 用户角色枚举类
  */
-
 @Getter
 public enum UserRoleEnum {
     USER("用户", "user"),

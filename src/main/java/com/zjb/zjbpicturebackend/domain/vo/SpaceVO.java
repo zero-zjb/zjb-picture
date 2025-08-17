@@ -6,6 +6,8 @@ import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class SpaceVO implements Serializable {
@@ -65,9 +67,20 @@ public class SpaceVO implements Serializable {
     private LocalDateTime updateTime;
 
     /**
+     * 空间类型：0-私有 1-团队
+     */
+    private Integer spaceType;
+
+    /**
      * 创建用户信息
      */
     private UserVO user;
+
+    /**
+     * 权限列表
+     */
+    private List<String> permissionList = new ArrayList<>();
+
 
     private static final long serialVersionUID = 1L;
 

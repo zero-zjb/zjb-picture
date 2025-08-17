@@ -2,7 +2,9 @@ package com.zjb.zjbpicturebackend.domain.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
-
+/**
+ * 空间等级枚举
+ */
 @Getter
 public enum SpaceLevelEnum {
 

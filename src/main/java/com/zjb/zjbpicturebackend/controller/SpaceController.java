@@ -22,6 +22,7 @@ import com.zjb.zjbpicturebackend.domain.vo.SpaceLevel;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
 import com.zjb.zjbpicturebackend.exception.ThrowUtils;
+import com.zjb.zjbpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.zjb.zjbpicturebackend.service.ISpaceService;
 import com.zjb.zjbpicturebackend.service.IUserService;
 import io.swagger.annotations.Api;
@@ -52,6 +53,8 @@ public class SpaceController {
     private final IUserService userService;
 
     private final ISpaceService spaceService;
+
+    private final SpaceUserAuthManager spaceUserAuthManager;
     /**
      * 添加空间
      * @param spaceAddRequest
@@ -190,6 +193,9 @@ public class SpaceController {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
+        User loginUser = userService.getLoginUser(request);
+        spaceVO.setPermissionList(spaceUserAuthManager.getPermissionList(space, loginUser));
+        return ResultUtils.success(spaceVO);
     }
 }

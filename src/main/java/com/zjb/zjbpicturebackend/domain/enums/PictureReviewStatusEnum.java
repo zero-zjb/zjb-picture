@@ -2,7 +2,9 @@ package com.zjb.zjbpicturebackend.domain.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
-
+/**
+ * 帖子审核状态枚举
+ */
 @Getter
 public enum PictureReviewStatusEnum {
     REVIEWING("待审核", 0),

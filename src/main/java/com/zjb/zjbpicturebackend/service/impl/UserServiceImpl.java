@@ -11,6 +11,7 @@ import com.zjb.zjbpicturebackend.domain.vo.LoginUserVO;
 import com.zjb.zjbpicturebackend.domain.vo.UserVO;
 import com.zjb.zjbpicturebackend.exception.BusinessException;
 import com.zjb.zjbpicturebackend.exception.ErrorCode;
+import com.zjb.zjbpicturebackend.manager.auth.StpKit;
 import com.zjb.zjbpicturebackend.mapper.UserMapper;
 import com.zjb.zjbpicturebackend.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -74,7 +75,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         // 4. 保存用户登录状态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        // 5. 返回脱敏后的用户信息
+        StpKit.SPACE.login(user.getId());
+        // 5. 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
+
+        // 6. 返回脱敏后的用户信息
         return BeanUtil.copyProperties(user, LoginUserVO.class);
     }
 
