@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @author leikooo
+ * 第三方存储配置
  */
 @Configuration
 @ConfigurationProperties(prefix = "cos.client")
